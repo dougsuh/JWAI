@@ -16,6 +16,9 @@ ArrayList<PVector> animPath;
 float animProgress = 0;
 boolean isAnimating = false;
 int activeTeam = -1;
+boolean waitingForTeamCount = true;
+String teamCountInput = "2";
+boolean teamCountInputDirty = false;
 
 float leftX;
 float rightX;
@@ -27,18 +30,17 @@ void setup() {
   smooth();
   textAlign(CENTER, CENTER);
 
-  rung = new boolean[rowCount][N - 1];
-  resultForTeam = new int[N];
   animPath = new ArrayList<PVector>();
-
-  generateLadder();
-  computeResults();
-
   noLoop();
 }
 
 void draw() {
   background(0, 255, 255);
+  if (waitingForTeamCount) {
+    drawStartScreen();
+    return;
+  }
+
   drawFrame();
   drawRails();
   drawRungs();
@@ -46,6 +48,31 @@ void draw() {
   drawSummary();
   drawAnimation();
   updateAnimation();
+}
+
+void initGame(int teamCount) {
+  N = teamCount;
+  if (N < 2) N = 2;
+  if (N > 20) N = 20;
+  rung = new boolean[rowCount][N - 1];
+  resultForTeam = new int[N];
+  animPath.clear();
+  animProgress = 0;
+  isAnimating = false;
+  activeTeam = -1;
+  waitingForTeamCount = false;
+
+  float usable = width * 0.62;
+  float boxWidth = usable / N * 0.85;
+  topBoxW = constrain(boxWidth, 40, 130);
+  bottomBoxW = topBoxW;
+  topBoxH = 44;
+  bottomBoxH = 44;
+  markerSize = constrain(18 - (N - 4) * 0.4, 10, 18);
+
+  generateLadder();
+  computeResults();
+  redraw();
 }
 
 void generateLadder() {
@@ -84,6 +111,30 @@ void computeResults() {
 
 float railX(int index) {
   return map(index, 0, N - 1, width * 0.15, width * 0.85);
+}
+
+void drawStartScreen() {
+  fill(255);
+  textSize(36);
+  text("Ladder Shift", width / 2, 110);
+
+  textSize(20);
+  fill(0);
+  text("Enter number of teams and press Enter", width / 2, 190);
+
+  fill(255);
+  stroke(0);
+  strokeWeight(2);
+  rectMode(CENTER);
+  rect(width / 2, 290, 260, 70, 14);
+
+  fill(180, 0, 0);
+  textSize(30);
+  text(teamCountInput, width / 2, 290);
+
+  fill(0);
+  textSize(16);
+  text("Allowed range: 2 to 20", width / 2, 370);
 }
 
 void drawFrame() {
@@ -132,7 +183,10 @@ void drawRungs() {
 
 void drawLabels() {
   rectMode(CENTER);
-  textSize(24);
+  float labelSize = 24;
+  if (N > 10) labelSize = 14;
+  else if (N > 6) labelSize = 18;
+  textSize(labelSize);
 
   for (int i = 0; i < N; i++) {
     float x = railX(i);
@@ -155,7 +209,7 @@ void drawLabels() {
 
 void drawSummary() {
   textAlign(LEFT, TOP);
-  textSize(20);
+  textSize(N > 10 ? 14 : 20);
   fill(0);
   noStroke();
 
@@ -278,6 +332,10 @@ void updateAnimation() {
 }
 
 void mousePressed() {
+  if (waitingForTeamCount) {
+    return;
+  }
+
   for (int i = 0; i < N; i++) {
     float x = railX(i);
     float y = ladderTop - 48;
@@ -321,6 +379,28 @@ ArrayList<PVector> buildPath(int team) {
 }
 
 void keyPressed() {
+  if (waitingForTeamCount) {
+    if (key >= '0' && key <= '9') {
+      if (!teamCountInputDirty) {
+        teamCountInput = "" + key;
+        teamCountInputDirty = true;
+      } else if (teamCountInput.length() < 2) {
+        teamCountInput += key;
+      }
+      redraw();
+    } else if (key == BACKSPACE) {
+      if (teamCountInput.length() > 0) {
+        teamCountInput = teamCountInput.substring(0, teamCountInput.length() - 1);
+      }
+      teamCountInputDirty = teamCountInput.length() > 0;
+      redraw();
+    } else if (key == ENTER || key == RETURN) {
+      int parsed = teamCountInput.length() == 0 ? 4 : int(teamCountInput);
+      initGame(parsed);
+    }
+    return;
+  }
+
   if (key == 'r' || key == 'R') {
     generateLadder();
     computeResults();
