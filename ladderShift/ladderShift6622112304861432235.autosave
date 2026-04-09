@@ -1,0 +1,153 @@
+int shift = 0; // base offset for the displayed result numbers
+int N = 6;
+int rowCount = 10;
+
+boolean[][] rung;
+int[] resultForTeam;
+
+float leftX;
+float rightX;
+float ladderTop;
+float ladderBottom;
+
+void setup() {
+  size(1800, 600);
+  smooth();
+  textAlign(CENTER, CENTER);
+
+  rung = new boolean[rowCount][N - 1];
+  resultForTeam = new int[N];
+
+  generateLadder();
+  computeResults();
+
+  noLoop();
+}
+
+void draw() {
+  background(0, 255, 255);
+  drawFrame();
+  drawRails();
+  drawRungs();
+  drawLabels();
+  drawSummary();
+}
+
+void generateLadder() {
+  for (int row = 0; row < rowCount; row++) {
+    for (int col = 0; col < N - 1; col++) {
+      rung[row][col] = false;
+    }
+  }
+
+  for (int row = 0; row < rowCount; row++) {
+    int col = 0;
+    while (col < N - 1) {
+      if (random(1) < 0.35) {
+        rung[row][col] = true;
+        col += 2; // keep rungs separated so they do not touch
+      } else {
+        col++;
+      }
+    }
+  }
+}
+
+void computeResults() {
+  for (int team = 0; team < N; team++) {
+    int pos = team;
+    for (int row = 0; row < rowCount; row++) {
+      if (pos < N - 1 && rung[row][pos]) {
+        pos++;
+      } else if (pos > 0 && rung[row][pos - 1]) {
+        pos--;
+      }
+    }
+    resultForTeam[team] = pos;
+  }
+}
+
+float railX(int index) {
+  return map(index, 0, N - 1, width * 0.15, width * 0.85);
+}
+
+void drawFrame() {
+  leftX = railX(0);
+  rightX = railX(N - 1);
+  ladderTop = 160;
+  ladderBottom = height - 160;
+
+  noStroke();
+  fill(0, 40);
+  rectMode(CORNER);
+  rect(leftX - 80, ladderTop - 50, (rightX - leftX) + 160, (ladderBottom - ladderTop) + 100, 18);
+
+  fill(255);
+  textSize(34);
+  text("Ladder Shift", width / 2, 48);
+  textSize(18);
+  text("team number -> randomized result", width / 2, 84);
+}
+
+void drawRails() {
+  stroke(255);
+  strokeWeight(4);
+  for (int i = 0; i < N; i++) {
+    float x = railX(i);
+    line(x, ladderTop, x, ladderBottom);
+  }
+}
+
+void drawRungs() {
+  stroke(255, 120, 0);
+  strokeWeight(6);
+  float rowStep = (ladderBottom - ladderTop) / (rowCount - 1.0);
+
+  for (int row = 0; row < rowCount; row++) {
+    float y = ladderTop + row * rowStep;
+    for (int col = 0; col < N - 1; col++) {
+      if (rung[row][col]) {
+        line(railX(col), y, railX(col + 1), y);
+      }
+    }
+  }
+}
+
+void drawLabels() {
+  rectMode(CENTER);
+  textSize(24);
+
+  for (int i = 0; i < N; i++) {
+    float x = railX(i);
+
+    stroke(0);
+    strokeWeight(2);
+    fill(255);
+    rect(x, ladderTop - 48, 130, 44, 10);
+    fill(0, 0, 180);
+    text("Team " + (i + 1), x, ladderTop - 48);
+
+    fill(255);
+    rect(x, ladderBottom + 48, 130, 44, 10);
+    fill(180, 0, 0);
+    text(shift + i + 1, x, ladderBottom + 48);
+  }
+}
+
+void drawSummary() {
+  textAlign(LEFT, TOP);
+  textSize(20);
+  fill(0);
+  noStroke();
+
+  float x = width * 0.73;
+  float y = 140;
+  text("Result map", x, y);
+  y += 34;
+
+  for (int team = 0; team < N; team++) {
+    int finalPos = resultForTeam[team];
+    text("Team " + (team + 1) + " -> " + (shift + finalPos + 1), x, y);
+    y += 30;
+  }
+}
