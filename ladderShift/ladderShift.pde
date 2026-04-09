@@ -52,8 +52,8 @@ void draw() {
 
 void initGame(int teamCount) {
   N = teamCount;
-  if (N < 2) N = 2;
-  if (N > 20) N = 20;
+  if (N < 2) N = 2;  // reviewed
+  if (N > 30) N = 30; // reviewed
   rung = new boolean[rowCount][N - 1];
   resultForTeam = new int[N];
   animPath.clear();
